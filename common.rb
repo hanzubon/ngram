@@ -17,9 +17,16 @@ end
 require "csv"
 
 class NgramIndex
+  # Note:
+  # インデクスファイルのファイル名は決め打ち
+  # データソースのファイルもこのファイル名でカレントディレクトリにおかれてることを前提とする
   Source = "KEN_ALL.CSV"
   IndexFile = "address.idx"
 
+  Zip_col = 2
+  Addr1_col = 6
+  Addr2_col = 7
+  Addr3_col = 8
   def initialize
     @index = {addresses: [], index: {}}
   end
@@ -36,8 +43,6 @@ class NgramIndex
   end
 
   def save
-    p "saving"
-    p IndexFile
     file = File.open(IndexFile, "w")
     Marshal.dump(@index, file)
     file.close
@@ -46,20 +51,17 @@ class NgramIndex
   def create
     CSV.foreach(Source, encoding: "Shift_JIS:UTF-8") do |row|
       # Note::
-      # 今回の課題範囲外で他のカラムを使うような拡張をあとでするようなケース(出力情報を足すとか)
-      # を想定して、現状 as is で全部カラムをそのまま入れてしまってるけど入力データも
-      # そこから生成されるインデクスも そこそこデカい上にインデクスの生成も検索も
-      # オンメモリで処理しようとしてるので、場合によっては検索と出力には不要なカラムは
-      # 削ったほうが better かもしれない
-      @index[:addresses].push(row)
+      # as is で元々のデータをそのままつっこんだら インデクスファイルがかなりでかくなって
+      # しまったので、必要なデータのみにしぼる
+      #
+      @index[:addresses].push([row[Zip_col],row[Addr1_col],row[Addr2_col],row[Addr3_col]])
     end
 
     @index[:addresses].each_with_index do |val, idx|
       # Note:
-      # 検索対象としては漢字の住所部分 カラムで言うと 6,7,8 のみとする
-      # フリガナのカラムは扱わない
+      # 検索対象としては漢字の住所部分 カラムで言うと 1,2,3 のみとする
       t = []
-      for i in 6..8 do
+      for i in 1..3 do
         t.concat(val[i].ngram(2))
       end
       ngrams = t.uniq
@@ -73,6 +75,34 @@ class NgramIndex
     end
   end
 
-  def search
+  def search(str)
+    needle = str.gsub(/ +/,'')
+    ngrams = needle.ngram(2)
+    p ngrams
+    ids = []
+    ngrams.each do |v|
+      if @index[:index].has_key?(v)
+        ids.concat(@index[:index][v])
+      end
+    end
+    ret = []
+    len = @index[:addresses].length
+    ids.sort.uniq.each do |id|
+      # Note:
+      # このケースは発生しないはずだけど address の配列の個数より
+      # 大きな id が出てきたら それ以降はデータがそもそもないはずなので
+      # loop ぬける
+      if id >= len
+        break
+      end
+      ret.push(@index[:addresses][id])
+    end
+    return ret
+  end
+
+  def search_print(str)
+    search(str).each do |addr|
+      puts('"'+addr.join('","')+'"')
+    end
   end
 end
