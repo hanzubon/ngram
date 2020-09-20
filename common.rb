@@ -137,8 +137,7 @@ class NgramIndex
       for i in 1..3 do
         t.concat(val[i].ngram(2))
       end
-      ngrams = t.uniq
-      ngrams.each do |v|
+      t.uniq.each do |v|
         if @index[:index].has_key?(v)
           @index[:index][v].push(idx)
         else
