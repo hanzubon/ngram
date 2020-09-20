@@ -27,7 +27,23 @@ class NgramIndex
   Addr1_col = 6
   Addr2_col = 7
   Addr3_col = 8
+
   def initialize
+    # 住所エントリのリストは @index[:addresses]に配列として格納
+    # ngram インデクスそれ自体は @index[:index] に格納される。
+    # ngramインデクスの各エントリは該当するngramの文字列に対応する住所を含んでいる住所エントリの
+    # @index[:addresses]配列の添字の配列を持っている。
+    # 例えば
+    #
+    # @index[:addresses] = [["0101642","秋田県","秋田市","新屋渋谷町"], ["1500042","東京都","渋谷区","宇田川町"]]
+    #
+    # であるとするときは
+    #
+    # @index[:index] = {"秋田" => [0], "田県" => [0], "渋谷" => [0,1], "東京" => [1] (... 以下省略) }
+    #
+    # といった形で、インデクスデータのサイズを考慮して、配列の添字のみ持っている形にしてある。
+    # 従って、インデクスファイルには このアドレスのリストとngramインデクスの両方を保存する必要がある。
+    # (= @index 全体を保存しとかないといけない)
     @index = {addresses: [], index: {}}
   end
 
@@ -59,6 +75,9 @@ class NgramIndex
   end
 
   def create
+    # CSVファイルから bi-gram の index を作成する
+    # index はオンメモリのhashに持っているだけなので、別途 save method 呼んでファイルに吐き出すこと
+
     prev_row = nil
     CSV.foreach(Source, encoding: "Shift_JIS:UTF-8") do |row|
       # Note::
@@ -130,6 +149,7 @@ class NgramIndex
   end
 
   def search(str)
+    # スペースは無視するという指示なので 単純にスペースを削除
     needle = str.gsub(/ +/,'')
     ngrams = needle.ngram(2)
     ids = []
