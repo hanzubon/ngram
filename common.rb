@@ -78,7 +78,6 @@ class NgramIndex
   def search(str)
     needle = str.gsub(/ +/,'')
     ngrams = needle.ngram(2)
-    p ngrams
     ids = []
     ngrams.each do |v|
       if @index[:index].has_key?(v)
