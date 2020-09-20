@@ -33,5 +33,10 @@ dump/load するという形式にしてしまった。
 住所データ
 http://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
 
-各カラムの仕様の説明はこれがわかりやすい/比較的新しい
+
+「日本郵便の郵便番号データ ken_all をどうにかする」
 https://blog1.mammb.com/entry/2020/02/11/015807
+
+各カラムの仕様の説明はこれがわかりやすい/比較的新しい。問題の複数行レコードに関する説明もある。
+
+
