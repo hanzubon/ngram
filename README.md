@@ -8,7 +8,7 @@ ruby 2.7.1p83 (2020-03-31 revision a0c7c23c9c) [x86_64-linux-gnu]
  * 展開したディレクトリに cd する(require "./common.rb" とか書いてる箇所があるので cd しないと動きません)
  * 移動した先のディレクトリに http://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip を展開して出てくる KEN_ALL.CSV を置く
  * create_index.rb を実行してインデクスファイルを生成する(address.idx というファイルが生成される)
- * search.pl で検索する。検索対象は引数で指定。
+ * search.pl で検索する、検索対象は引数で指定
 
     例: ./search.pl 渋谷
 
