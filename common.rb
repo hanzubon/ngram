@@ -150,7 +150,7 @@ class NgramIndex
 
   def search(str)
     # スペースは無視するという指示なので 単純にスペースを削除
-    needle = str.gsub(/ +/,'')
+    needle = str.gsub(/ /,'')
     ngrams = needle.ngram(2)
     ids = []
     ngrams.each do |v|
