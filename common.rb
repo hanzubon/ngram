@@ -48,14 +48,67 @@ class NgramIndex
     file.close
   end
 
+  def _check_unbalance_paren(row)
+    if row[Addr3_col].count('（') == row[Addr3_col].count('）')
+      # カッコと閉じカッコの数が同じなので途中できれてない
+      # そのまま row[Addr3_col] 使って ok
+      @index[:addresses].push([row[Zip_col],row[Addr1_col],row[Addr2_col],row[Addr3_col]])
+      return nil
+    end
+    return row
+  end
+
   def create
+    prev_row = nil
     CSV.foreach(Source, encoding: "Shift_JIS:UTF-8") do |row|
       # Note::
       # as is で元々のデータをそのままつっこんだら インデクスファイルがかなりでかくなって
       # しまったので、必要なデータのみにしぼる
+
+      # 複数行にまたがっているエントリの処理
+      # 参考: https://blog1.mammb.com/entry/2020/02/11/015807
       #
-      # FIXME:: 複数行にわたってるエントリの処理をここにいれること
-      @index[:addresses].push([row[Zip_col],row[Addr1_col],row[Addr2_col],row[Addr3_col]])
+      # 「全角となっている町域部分の文字数が38文字を越える場合、また半角となっている
+      # フリガナ部分の文字数が76文字を越える場合は、複数レコードに分割しています。」
+      # (このプログラムでは全角部分しか扱ってないので、以下フリガナ部分は無視する)
+      # 上記が仕様だが複数に分割される場合、必ずしも38文字できれるわけではないので
+      # 文字数でのカウントでは判定できない。ほかにもいい判定基準はないが、分割される
+      # ケースでは 全角カッコ が使われており、かつ分割されたケースでは 全角カッコが
+      # 閉じれれる前に分割されてるので、それを判定すればいいようだ。
+      #
+      # 以下の処理 厳密にはカッコの数を数えて現状のアンバランス具合を追いながら
+      # バランスするところまでおいかけるのが本当は正しいが、そこを厳密にチェックしようと
+      # すると、場合分けが今以上に面倒なことになる。
+      # カッコのネストはない(と分析されている)、複数カッコがあるところは存在するがそこは
+      # 分割されてないなどを前提に 単にカッコがアンバランスであるかどうか(カッコと閉じ
+      # カッコの数が異なってるか)だけで判断している
+
+      if prev_row.nil?
+        prev_row = _check_unbalance_paren(row)
+      else
+        # 直前処理でアンバランスなカッコが見つかってて prev_row に入ってる
+        if prev_row[Zip_col] != row[Zip_col] || prev_row[Addr1_col] != row[Addr1_col] || prev_row[Addr2_col] != row[Addr2_col]
+          # 行が分割されている場合、prev_rowのエントリの Zip_col, Addr1_col, Addr2_col は同じで Addr3_col のみが
+          # 異なるはずなので、カッコがアンバランスだったとしても Addr3_col 以外が異なってる場合は
+          # 複数行に分割されていなかった(データ上ただ単にカッコを閉じ忘れてる)ことになる。
+          # それぞれを別エントリとして格納
+          @index[:addresses].push([prev_row[Zip_col],prev_row[Addr1_col],prev_row[Addr2_col],prev_row[Addr3_col]])
+
+          # row の方はカッコのアンバランスのチェックが必要
+          prev_row = _check_unbalance_paren(row)
+        else
+          if row[Addr3_col].count('（') == row[Addr3_col].count('）')
+            # ここで カッコの数があっている。直前でアンバランスだったんで、
+            # 結果まだアンバランスなまま、さらに続きがあるようだ
+            # prev_rowの住所を修正して(row[Addr3_col]を足して) さらに次の行へ
+            prev_row[Addr3_col] = prev_row[Addr3_col]+row[Addr3_col]
+          else
+            # 分割はここでおしまいなので結合して格納。prev_rowをクリア
+            @index[:addresses].push([row[Zip_col],row[Addr1_col],row[Addr2_col],prev_row[Addr3_col]+row[Addr3_col]])
+            prev_row = nil
+          end
+        end
+      end
     end
 
     @index[:addresses].each_with_index do |val, idx|
