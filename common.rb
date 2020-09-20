@@ -54,6 +54,7 @@ class NgramIndex
       # as is で元々のデータをそのままつっこんだら インデクスファイルがかなりでかくなって
       # しまったので、必要なデータのみにしぼる
       #
+      # FIXME:: 複数行にわたってるエントリの処理をここにいれること
       @index[:addresses].push([row[Zip_col],row[Addr1_col],row[Addr2_col],row[Addr3_col]])
     end
 
